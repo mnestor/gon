@@ -70,6 +70,7 @@ type Sign struct {
 	ApplicationIdentity string `hcl:"application_identity"`
 	// Specify a path to an entitlements file in plist format
 	EntitlementsFile string `hcl:"entitlements_file,optional"`
+	Deep bool `hcl:"deep,optional"`
 }
 
 // Dmg are the options for a dmg file as output.

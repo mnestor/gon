@@ -21,6 +21,7 @@ gon helps you automate the process of notarization.
 This fork resolves the following issues/PRs:
 - https://github.com/mitchellh/gon/pull/42
 - https://github.com/mitchellh/gon/issues/64
+- Adds an Application folder shortcut to the DMG
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->

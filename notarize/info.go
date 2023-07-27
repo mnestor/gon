@@ -7,7 +7,6 @@ import (
 	"io"
 	"os/exec"
 	"path/filepath"
-	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"howett.net/plist"
@@ -19,42 +18,28 @@ import (
 // only become available at different states of the notarization process. If
 // we were only able to submit a notarization request and not check the status
 // once, only RequestUUID will be set.
-type Info struct {
+
+type InfoResult struct {
 	// RequestUUID is the UUID provided by Apple after submitting the
 	// notarization request. This can be used to look up notarization information
 	// using the Apple tooling.
-	RequestUUID string `plist:"RequestUUID"`
+	RequestUUID string `plist:"id"`
 
-	// Date is the date and time of submission
-	Date time.Time `plist:"Date"`
+	Date string `plist:"createdDate"`
 
-	// Hash is the encoded hash value for the submitted file. This is provided
-	// by Apple. This is not decoded into a richer type like hash/sha256 because
-	// it doesn't seem to be guaranteed by Apple anywhere what format this is in.
-	Hash string `plist:"Hash"`
-
-	// LogFileURL is a URL to a log file for more details.
-	LogFileURL string `plist:"LogFileURL"`
+	// Name is a URL to a log file for more details.
+	Name string `plist:"name"`
 
 	// Status the status of the notarization.
 	//
 	// StatusMessage is a human-friendly message associated with a status.
-	Status        string `plist:"Status"`
-	StatusMessage string `plist:"Status Message"`
-}
-
-// infoResult is the structure of the plist emitted directly from
-// --notarization-info
-type infoResult struct {
-	Info *Info `plist:"notarization-info"`
-
-	// Errors is the list of errors that occurred while uploading
-	Errors Errors `plist:"product-errors"`
+	Status        string `plist:"status"`
+	StatusMessage string `plist:"message"`
 }
 
 // info requests the information about a notarization and returns
 // the updated information.
-func info(ctx context.Context, uuid string, opts *Options) (*Info, error) {
+func info(ctx context.Context, uuid string, opts *Options) (*InfoResult, error) {
 	logger := opts.Logger
 	if logger == nil {
 		logger = hclog.NewNullLogger()
@@ -78,12 +63,11 @@ func info(ctx context.Context, uuid string, opts *Options) (*Info, error) {
 
 	cmd.Args = []string{
 		filepath.Base(cmd.Path),
-		"altool",
-		"--notarization-info",
+		"notarytool",
+		"info",
+		"--keychain-profile", "personal",
+		"--output-format", "plist",
 		uuid,
-		"-u", opts.Username,
-		"-p", opts.Password,
-		"--output-format", "xml",
 	}
 
 	// We store all output in out for logging and in case there is an error
@@ -109,16 +93,11 @@ func info(ctx context.Context, uuid string, opts *Options) (*Info, error) {
 
 	// If we have any output, try to decode that since even in the case of
 	// an error it will output some information.
-	var result infoResult
+	var result InfoResult
 	if out.Len() > 0 {
 		if _, perr := plist.Unmarshal(out.Bytes(), &result); perr != nil {
 			return nil, fmt.Errorf("failed to decode notarization submission output: %w", perr)
 		}
-	}
-
-	// If there are errors in the result, then show that error
-	if len(result.Errors) > 0 {
-		return nil, result.Errors
 	}
 
 	// Now we check the error for actually running the process
@@ -126,6 +105,6 @@ func info(ctx context.Context, uuid string, opts *Options) (*Info, error) {
 		return nil, fmt.Errorf("error checking on notarization status:\n\n%s", combined.String())
 	}
 
-	logger.Info("notarization info", "uuid", uuid, "info", result.Info)
-	return result.Info, nil
+	logger.Info("notarization info", "uuid", uuid, "info", result)
+	return &result, nil
 }

@@ -37,7 +37,7 @@ func (s *statusHuman) Submitted(uuid string) {
 		os.Stdout, "    %sWaiting for results from Apple. This can take minutes to hours.\n", s.Prefix)
 }
 
-func (s *statusHuman) Status(info notarize.Info) {
+func (s *statusHuman) Status(info notarize.InfoResult) {
 	s.Lock.Lock()
 	defer s.Lock.Unlock()
 

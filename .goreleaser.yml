@@ -3,7 +3,10 @@ env:
 
 before:
   hooks:
-    - go mod download
+    # You may remove this if you don't use go modules.
+    - go mod tidy
+    # you may remove this if you don't need go generate
+    # - go generate ./...
 
 builds:
   - id: macos
@@ -13,24 +16,31 @@ builds:
       - darwin
     goarch:
       - amd64
+      - arm64
     dir: ./cmd/gon/
 
 archives:
   - id: macos-zip
-    format: zip
-    name_template: "{{ .ProjectName }}_{{ .Os }}"
-    replacements:
-      darwin: macos
-      amd64: x86_64
+    format: binary
+    name_template: "{{ .Binary }}"
+    # replacements:
+    #   darwin: macos
+    #   amd64: x86_64
+
+universal_binaries:
+  - replace: true
+    ids:
+      - macos
+    name_template: "{{.ProjectName}}"
 
 checksum:
   disable: true
 
 signs:
-  - signature: "${artifact}_macos.dmg"
+  - signature: "${artifact}.dmg"
     ids:
       - macos-zip
-    cmd: gon
+    cmd: ./dist/gon_darwin_all/gon
     args:
       - .gon.hcl
     artifacts: all
@@ -51,8 +61,8 @@ release:
     - glob: ./dist/gon_macos.dmg
     - glob: ./dist/gon_macos.zip
 
-brews:
-  - tap:
-      owner: mitchellh
-      name: homebrew-gon
-    description: "Sign, notarize, and package macOS CLI applications written in any language."
+# brews:
+#   - tap:
+#       owner: mitchellh
+#       name: homebrew-gon
+#     description: "Sign, notarize, and package macOS CLI applications written in any language."

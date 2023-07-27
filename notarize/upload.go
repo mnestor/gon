@@ -38,23 +38,22 @@ func upload(ctx context.Context, opts *Options) (string, error) {
 
 	cmd.Args = []string{
 		filepath.Base(cmd.Path),
-		"altool",
-		"--notarize-app",
-		"--primary-bundle-id", opts.BundleId,
-		"-u", opts.Username,
-		"-p", opts.Password,
+		"notarytool",
+		"submit", opts.File,
+		"--keychain-profile", "personal",
+		"-f", "plist",
 	}
 
-	if opts.Provider != "" {
-		cmd.Args = append(cmd.Args,
-			"--asc-provider", opts.Provider,
-		)
-	}
+	// if opts.Provider != "" {
+	// 	cmd.Args = append(cmd.Args,
+	// 		"--asc-provider", opts.Provider,
+	// 	)
+	// }
 
-	cmd.Args = append(cmd.Args,
-		"-f", opts.File,
-		"--output-format", "xml",
-	)
+	// cmd.Args = append(cmd.Args,
+	// 	"-f", opts.File,
+	// 	"--output-format", "xml",
+	// )
 
 	// We store all output in out for logging and in case there is an error
 	var out, combined bytes.Buffer
@@ -87,9 +86,9 @@ func upload(ctx context.Context, opts *Options) (string, error) {
 	}
 
 	// If there are errors in the result, then show that error
-	if len(result.Errors) > 0 {
-		return "", result.Errors
-	}
+	// if len(result.Errors) > 0 {
+	// 	return "", result.Errors
+	// }
 
 	// Now we check the error for actually running the process
 	if err != nil {
@@ -97,25 +96,25 @@ func upload(ctx context.Context, opts *Options) (string, error) {
 	}
 
 	// We should have a request UUID set at this point since we checked for errors
-	if result.Upload == nil || result.Upload.RequestUUID == "" {
+	if result.RequestUUID == "" {
 		return "", fmt.Errorf(
 			"notarization appeared to succeed, but we failed at parsing " +
 				"the request UUID. Please enable logging, try again, and report " +
-				"this as a bug.")
+				"this as a bug")
 	}
 
-	logger.Info("notarization request submitted", "request_id", result.Upload.RequestUUID)
-	return result.Upload.RequestUUID, nil
+	logger.Info("notarization request submitted", "request_id", result.RequestUUID)
+	return result.RequestUUID, nil
 
 }
 
 // uploadResult is the plist structure when the upload succeeds
 type uploadResult struct {
 	// Upload is non-nil if there is a successful upload
-	Upload *struct {
-		RequestUUID string `plist:"RequestUUID"`
-	} `plist:"notarization-upload"`
+	RequestUUID string `plist:"id"`
+
+	Message string `plist:"message"`
 
 	// Errors is the list of errors that occurred while uploading
-	Errors Errors `plist:"product-errors"`
+	Path string `plist:"path"`
 }

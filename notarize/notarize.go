@@ -61,7 +61,7 @@ type Options struct {
 //
 // If error is nil, then Info is guaranteed to be non-nil.
 // If error is not nil, notarization failed and Info _may_ be non-nil.
-func Notarize(ctx context.Context, opts *Options) (*Info, error) {
+func Notarize(ctx context.Context, opts *Options) (*InfoResult, error) {
 	logger := opts.Logger
 	if logger == nil {
 		logger = hclog.NewNullLogger()
@@ -91,7 +91,7 @@ func Notarize(ctx context.Context, opts *Options) (*Info, error) {
 	// _to even exist_. While we get an error requesting info with an error
 	// code of 1519 (UUID not found), then we are stuck in a queue. Sometimes
 	// this queue is hours long. We just have to wait.
-	result := &Info{RequestUUID: uuid}
+	result := &InfoResult{RequestUUID: uuid}
 	for {
 		time.Sleep(10 * time.Second)
 		_, err := info(ctx, result.RequestUUID, opts)
@@ -134,7 +134,7 @@ func Notarize(ctx context.Context, opts *Options) (*Info, error) {
 		status.Status(*result)
 
 		// If we reached a terminal state then exit
-		if result.Status == "success" || result.Status == "invalid" {
+		if result.Status == "Accepted" || result.Status == "invalid" {
 			break
 		}
 
@@ -147,7 +147,7 @@ func Notarize(ctx context.Context, opts *Options) (*Info, error) {
 	// If we're in an invalid status then return an error
 	err = nil
 	if result.Status == "invalid" {
-		err = fmt.Errorf("package is invalid. To learn more download the logs at the URL: %s", result.LogFileURL)
+		err = fmt.Errorf("package is invalid. To learn more download the logs with UUID: %s", result.RequestUUID)
 	}
 
 	return result, err
